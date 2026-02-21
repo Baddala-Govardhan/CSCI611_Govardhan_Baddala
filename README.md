@@ -27,4 +27,4 @@ The script will:
 
 ## Screenshots
 
-The `output/` folder contains execution screenshots demonstrating:
+The `output/` folder contains execution screenshots demonstrating
