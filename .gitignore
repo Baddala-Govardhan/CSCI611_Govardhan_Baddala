@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+
+# big training artifacts
+runs/
+outputs/
+
+# do not include full datasets in repo (only data_sample/)
+Assignment_3/images/
+Assignment_3/labels/
