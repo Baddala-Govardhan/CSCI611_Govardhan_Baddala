@@ -1,7 +1,3 @@
-# Render Blueprint: https://render.com/docs/infrastructure-as-code
-# After training locally, stage model/plots/data (see README), push to GitHub, then:
-#   Render Dashboard → New → Blueprint → connect repo → apply this file.
-
 services:
   - type: web
     name: nyc-taxi-cancellation-demo
