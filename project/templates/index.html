@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ride Cancellation Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f5f6fa;
+    --surface:  #ffffff;
+    --card:     #ffffff;
+    --border:   #e5e7eb;
+    --border2:  #d1d5db;
+    --purple:   #6d4aff;
+    --purple2:  #5b3de8;
+    --green:    #16a34a;
+    --yellow:   #ca8a04;
+    --red:      #dc2626;
+    --text:     #111827;
+    --text2:    #4b5563;
+    --text3:    #9ca3af;
+  }
+
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 210px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); padding: 0;
+    position: fixed; top: 0; left: 0; z-index: 100;
+    display: flex; flex-direction: column;
+  }
+
+  .sidebar-brand {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-title { font-size: 0.78rem; font-weight: 700; color: var(--text); letter-spacing: 0.3px; line-height: 1.5; }
+  .brand-sub   { font-size: 0.7rem; color: var(--text3); margin-top: 5px; }
+
+  .nav { padding: 12px 0; flex: 1; }
+  .nav-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px; color: var(--text3); font-size: 0.83rem;
+    font-weight: 500; cursor: pointer; text-decoration: none;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .nav-link:hover { color: var(--text); background: rgba(0,0,0,0.04); }
+  .nav-link.active { color: var(--purple2); border-left-color: var(--purple); background: rgba(109,74,255,0.08); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  .main { margin-left: 210px; flex: 1; padding: 36px 40px; }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .page-sub   { font-size: 0.83rem; color: var(--text2); margin-bottom: 28px; }
+
+  /* ── Cards ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 22px; }
+
+  /* ── Metric row ── */
+  .metrics-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric-box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; text-align: center; }
+  .metric-val { font-size: 1.55rem; font-weight: 800; color: var(--purple2); letter-spacing: -0.5px; }
+  .metric-lbl { font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px; }
+
+  /* ── Section label ── */
+  .slabel {
+    font-size: 0.68rem; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 12px; margin-top: 28px;
+  }
+  .slabel:first-child { margin-top: 0; }
+
+  /* ── Grids ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  /* ── Plots ── */
+  .plot-wrap img {
+    width: 100%; border-radius: 8px; border: 1px solid var(--border);
+    cursor: pointer; transition: border-color 0.2s;
+    display: block;
+  }
+  .plot-wrap img:hover { border-color: var(--purple); }
+  .plot-lbl { font-size: 0.7rem; color: var(--text3); text-align: center; margin-top: 6px; }
+
+  /* ── Table ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  .tbl th {
+    text-align: left; padding: 9px 13px; color: var(--text3);
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px;
+    border-bottom: 1px solid var(--border); font-weight: 600;
+  }
+  .tbl td { padding: 10px 13px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: #f9fafb; }
+  .tbl td:first-child { color: var(--text); font-weight: 500; }
+  .badge { background: var(--purple); color: #fff; font-size: 0.62rem; padding: 2px 7px; border-radius: 20px; margin-left: 6px; font-weight: 600; }
+
+  /* ── Demo layout ── */
+  .demo-grid { display: grid; grid-template-columns: 400px 1fr; gap: 20px; align-items: start; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+  .form-label span { color: var(--text3); font-weight: 400; }
+  .form-input, .form-select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border2);
+    color: var(--text); border-radius: 7px; padding: 9px 13px;
+    font-size: 0.85rem; font-family: 'Inter', sans-serif; outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(109,74,255,0.1); }
+  .form-select option { background: #ffffff; color: #111827; }
+
+  .btn-predict {
+    width: 100%; padding: 12px; background: var(--purple);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: background 0.15s;
+    margin-top: 4px;
+  }
+  .btn-predict:hover { background: #5c38e8; }
+  .btn-predict:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── Zone table ── */
+  .zone-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+  .zone-item { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; }
+  .zone-id   { font-size: 0.85rem; font-weight: 700; color: var(--purple2); }
+  .zone-name { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+
+  /* ── Result panel ── */
+  .result-panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 32px; min-height: 420px; transition: border-color 0.4s;
+    display: flex; flex-direction: column;
+  }
+
+  .result-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text3); }
+  .result-empty p { font-size: 0.88rem; line-height: 1.8; }
+  .result-empty strong { color: var(--purple2); }
+
+  .result-main { display: none; }
+  .result-main.show { display: block; }
+
+  .result-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; }
+  .result-pct  { font-size: 4rem; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+  .result-risk { font-size: 0.78rem; font-weight: 700; letter-spacing: 2.5px; padding: 4px 12px; border-radius: 20px; border: 1px solid currentColor; margin-bottom: 8px; }
+
+  .result-bar-bg   { background: #e5e7eb; border-radius: 4px; height: 6px; margin-bottom: 24px; overflow: hidden; }
+  .result-bar-fill { height: 100%; border-radius: 4px; transition: width 0.9s cubic-bezier(0.4,0,0.2,1); }
+
+  /* ── Reasons ── */
+  .reasons-title { font-size: 0.68rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+  .reason-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .reason-item:last-child { border-bottom: none; }
+  .reason-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .reason-dot.high   { background: var(--red); }
+  .reason-dot.medium { background: var(--yellow); }
+  .reason-dot.low    { background: var(--green); }
+  .reason-text { font-size: 0.82rem; color: var(--text2); flex: 1; }
+  .reason-badge { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+  .reason-badge.high   { background: rgba(239,68,68,0.15);  color: var(--red); }
+  .reason-badge.medium { background: rgba(234,179,8,0.15);  color: var(--yellow); }
+  .reason-badge.low    { background: rgba(34,197,94,0.15);  color: var(--green); }
+
+  /* ── Trip summary ── */
+  .trip-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .trip-item .ti-lbl { font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+  .trip-item .ti-val { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-top: 3px; }
+
+  /* ── Lightbox ── */
+  #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 9999; align-items: center; justify-content: center; cursor: zoom-out; }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
+  /* ── Data table ── */
+  .data-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .data-info { font-size: 0.82rem; color: var(--text2); }
+  .data-search { background: var(--bg); border: 1px solid var(--border2); color: var(--text); border-radius: 7px; padding: 7px 13px; font-size: 0.83rem; font-family: 'Inter', sans-serif; outline: none; width: 260px; }
+  .data-search:focus { border-color: var(--purple); }
+  .data-table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  .data-tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .data-tbl th { background: var(--bg); padding: 10px 14px; text-align: left; font-size: 0.68rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .data-tbl td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+  .data-tbl tr:last-child td { border-bottom: none; }
+  .data-tbl tr:hover td { background: #f9fafb; }
+  .cancelled-yes { color: var(--red); font-weight: 600; }
+  .cancelled-no  { color: var(--green); font-weight: 600; }
+  .pagination { display: flex; align-items: center; gap: 6px; margin-top: 14px; justify-content: center; }
+  .page-btn { background: var(--card); border: 1px solid var(--border); color: var(--text2); border-radius: 6px; padding: 5px 12px; font-size: 0.82rem; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+  .page-btn:hover { border-color: var(--purple); color: var(--purple2); }
+  .page-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-title">Ride Cancellation<br>Prediction System</div>
+    </div>
+    <nav class="nav">
+      <a class="nav-link active" onclick="showPage('demo', this)">
+        <span class="nav-dot"></span> Live Demo
+      </a>
+      <a class="nav-link" onclick="showPage('results', this)">
+        <span class="nav-dot"></span> Model Results
+      </a>
+      <a class="nav-link" onclick="showPage('eda', this)">
+        <span class="nav-dot"></span> Data Analysis
+      </a>
+      <a class="nav-link" onclick="showPage('data', this)">
+        <span class="nav-dot"></span> Dataset
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- ══ DEMO ══ -->
+    <div class="page active" id="page-demo">
+      <div class="page-title">Live Cancellation Prediction</div>
+      <div class="page-sub">Enter trip details. The boosted tree model (<strong>{{ boost_backend }}</strong>) predicts cancellation risk and explains the key contributing factors.</div>
+
+      <div class="demo-grid">
+
+        <!-- Form -->
+        <div class="card">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Pickup Hour <span>(0 – 23)</span></label>
+              <input type="number" class="form-input" id="inp-hour" min="0" max="23" value="22"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Day of Week</label>
+              <select class="form-select" id="inp-dow">
+                <option value="0">Monday</option>
+                <option value="1">Tuesday</option>
+                <option value="2">Wednesday</option>
+                <option value="3">Thursday</option>
+                <option value="4">Friday</option>
+                <option value="5" selected>Saturday</option>
+                <option value="6">Sunday</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Pickup Location</label>
+              <select class="form-select" id="inp-pu" onchange="autoDistance()">
+                {% for z in zone_options %}
+                <option value="{{ z.LocationID }}" {% if z.LocationID == 132 %}selected{% endif %}>
+                  {{ z.zone }} ({{ z.borough }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dropoff Location</label>
+              <select class="form-select" id="inp-do" onchange="autoDistance()">
+                {% for z in zone_options %}
+                <option value="{{ z.LocationID }}" {% if z.LocationID == 161 %}selected{% endif %}>
+                  {{ z.zone }} ({{ z.borough }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Trip Distance <span>(miles — auto-calculated from locations, editable)</span></label>
+            <input type="number" class="form-input" id="inp-dist" min="0.1" max="100" step="0.1" value="12.0"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Estimated Fare <span>(USD — auto)</span></label>
+            <input type="text" class="form-input" id="inp-fare" value="—" readonly/>
+          </div>
+
+          <button class="btn-predict" id="btn-predict" onclick="runPredict()">Predict Cancellation Risk</button>
+        </div>
+
+        <!-- Result -->
+        <div class="result-panel" id="result-panel">
+          <div class="result-empty" id="result-empty">
+            <p>Enter trip details on the left<br>and click <strong>Predict Cancellation Risk</strong><br>to see the model output.</p>
+          </div>
+
+          <div class="result-main" id="result-main">
+            <div class="result-header">
+              <div class="result-pct" id="result-pct"></div>
+              <div class="result-risk" id="result-risk"></div>
+            </div>
+
+            <div class="result-bar-bg">
+              <div class="result-bar-fill" id="result-bar"></div>
+            </div>
+
+            <div class="reasons-title">Why this prediction</div>
+            <div id="reasons-list"></div>
+
+            <div class="trip-summary" id="trip-summary"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ RESULTS ══ -->
+    <div class="page" id="page-results">
+      <div class="page-title">Model Results</div>
+      <div class="page-sub">Boosted tree model (<strong>{{ boost_backend }}</strong>) — sampled trips — 80/20 stratified split</div>
+
+      <div class="slabel">Boosted Model — Test Set Performance</div>
+      <div class="metrics-row">
+        {% for key, val in xgb.items() %}
+        <div class="metric-box">
+          <div class="metric-val">{{ "%.3f"|format(val) }}</div>
+          <div class="metric-lbl">{{ key.replace('_',' ') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="slabel">Model Comparison</div>
+      <div class="card" style="margin-bottom:24px;">
+        <table class="tbl">
+          <thead>
+            <tr><th>Model</th><th>ROC-AUC</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Boosted (<span class="badge">{{ boost_backend }}</span>)</td>
+              <td>{{ "%.4f"|format(xgb.roc_auc) }}</td>
+              <td>{{ "%.4f"|format(xgb.accuracy) }}</td>
+              <td>{{ "%.4f"|format(xgb.precision) }}</td>
+              <td>{{ "%.4f"|format(xgb.recall) }}</td>
+              <td>{{ "%.4f"|format(xgb.f1) }}</td>
+            </tr>
+            <tr>
+              <td>Logistic Regression</td>
+              <td>{{ "%.4f"|format(logreg.roc_auc) }}</td>
+              <td>{{ "%.4f"|format(logreg.accuracy) }}</td>
+              <td>{{ "%.4f"|format(logreg.precision) }}</td>
+              <td>{{ "%.4f"|format(logreg.recall) }}</td>
+              <td>{{ "%.4f"|format(logreg.f1) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="g2" style="margin-bottom:24px;">
+        <div>
+          <div class="slabel">Feature Ablation Study</div>
+          <div class="card">
+            <table class="tbl">
+              <thead><tr><th>Feature Set</th><th>ROC-AUC</th><th>F1</th></tr></thead>
+              <tbody>
+                {% for name, m in ablation.items() %}
+                <tr>
+                  <td>{{ name }}</td>
+                  <td>{{ "%.4f"|format(m.roc_auc) }}</td>
+                  <td>{{ "%.4f"|format(m.f1) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="slabel">Feature Importance — Boosted Model</div>
+          <div class="card"><canvas id="fi-chart" height="200"></canvas></div>
+        </div>
+      </div>
+
+      <div class="slabel">Boosted Model — Evaluation Plots</div>
+      <div class="g4" style="margin-bottom:24px;">
+        {% for img, lbl in [
+          ('boost_all_roc.png','ROC Curve'),
+          ('boost_all_pr.png','Precision-Recall'),
+          ('boost_all_confusion.png','Confusion Matrix'),
+          ('boost_all_calibration.png','Calibration'),
+          ('boost_all_pred_hist.png','Prediction Distribution'),
+          ('boost_all_learning_roc_auc.png','Learning Curve — AUC'),
+          ('boost_all_learning_f1.png','Learning Curve — F1')
+        ] %}
+        <div class="plot-wrap">
+          <img src="/image/{{ img }}" onclick="openLightbox(this.src)"/>
+          <div class="plot-lbl">{{ lbl }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="slabel">Logistic Regression — Baseline</div>
+      <div class="g4">
+        {% for img, lbl in [
+          ('logreg_all_roc.png','ROC Curve'),
+          ('logreg_all_pr.png','Precision-Recall'),
+          ('logreg_all_confusion.png','Confusion Matrix'),
+          ('logreg_all_calibration.png','Calibration')
+        ] %}
+        <div class="plot-wrap">
+          <img src="/image/{{ img }}" onclick="openLightbox(this.src)"/>
+          <div class="plot-lbl">{{ lbl }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ══ EDA ══ -->
+    <div class="page" id="page-eda">
+      <div class="page-title">Exploratory Data Analysis</div>
+      <div class="page-sub">NYC TLC Yellow Taxi — sampled trips — configurable synthetic cancellation rate</div>
+
+      <div class="g3">
+        {% for img, lbl in [
+          ('eda/eda_class_balance.png','Class Balance'),
+          ('eda/eda_cancel_by_hour.png','Cancellation Rate by Hour'),
+          ('eda/eda_cancel_by_dow.png','Cancellation Rate by Day'),
+          ('eda/eda_distance_dist.png','Trip Distance Distribution'),
+          ('eda/eda_cancel_by_distance.png','Cancellation Rate by Distance'),
+          ('eda/eda_volume_heatmap.png','Trip Volume — Hour x Day'),
+          ('eda/eda_cancel_heatmap.png','Cancellation Rate — Hour x Day')
+        ] %}
+        <div class="plot-wrap">
+          <img src="/image/{{ img }}" onclick="openLightbox(this.src)"/>
+          <div class="plot-lbl">{{ lbl }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ══ DATASET ══ -->
+    <div class="page" id="page-data">
+      <div class="page-title">Dataset</div>
+      <div class="page-sub">Labeled trip data used for training and testing — NYC TLC Yellow Taxi</div>
+
+      <div class="data-controls">
+        <div class="data-info" id="data-info">Loading...</div>
+        <input class="data-search" id="data-search" placeholder="Search by hour, day, distance..." oninput="filterTable()"/>
+      </div>
+
+      <div class="data-table-wrap">
+        <table class="data-tbl">
+          <thead id="data-thead"></thead>
+          <tbody id="data-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src=""/>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Zone coordinates for auto distance
+const ZONE_COORDS = {{ zone_coords | tojson }};
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function autoDistance() {
+  const pu = document.getElementById('inp-pu').value;
+  const doZ = document.getElementById('inp-do').value;
+  const c1 = ZONE_COORDS[pu], c2 = ZONE_COORDS[doZ];
+  if (!c1 || !c2) return;
+  const km = haversineKm(c1.latitude, c1.longitude, c2.latitude, c2.longitude);
+  const miles = (km * 0.621371).toFixed(1);
+  document.getElementById('inp-dist').value = miles;
+  autoFare();
+}
+
+// Set initial distance on page load
+window.addEventListener('DOMContentLoaded', () => { autoDistance(); autoFare(); });
+
+// Update fare when time changes
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('inp-hour').addEventListener('change', autoFare);
+  document.getElementById('inp-dow').addEventListener('change', autoFare);
+  document.getElementById('inp-dist').addEventListener('input', autoFare);
+});
+
+// Navigation defined below (near dataset section)
+
+// Feature importance chart
+const fiLabels = {{ fi_labels | tojson }};
+const fiValues = {{ fi_values | tojson }};
+new Chart(document.getElementById('fi-chart'), {
+  type: 'bar',
+  data: {
+    labels: fiLabels,
+    datasets: [{ data: fiValues, backgroundColor: '#6d4aff', borderRadius: 4, borderSkipped: false }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: '#e5e7eb' } },
+      y: { ticks: { color: '#4b5563', font: { size: 11 } }, grid: { color: '#e5e7eb' } }
+    }
+  }
+});
+
+// Colors
+const C = { success: '#22c55e', warning: '#eab308', danger: '#ef4444' };
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+async function autoFare() {
+  const payload = {
+    hour:     document.getElementById('inp-hour').value,
+    dow:      document.getElementById('inp-dow').value,
+    distance: document.getElementById('inp-dist').value,
+  };
+  try {
+    const res  = await fetch('/estimate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    const el = document.getElementById('inp-fare');
+    el.value = (data.estimated_fare === null || data.estimated_fare === undefined) ? '—' : ('$' + Number(data.estimated_fare).toFixed(2));
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function runPredict() {
+  const btn = document.getElementById('btn-predict');
+  btn.textContent = 'Predicting...';
+  btn.disabled = true;
+
+  const payload = {
+    hour:     document.getElementById('inp-hour').value,
+    dow:      document.getElementById('inp-dow').value,
+    distance: document.getElementById('inp-dist').value,
+    pu_zone:  document.getElementById('inp-pu').value,
+    do_zone:  document.getElementById('inp-do').value,
+  };
+
+  try {
+    const res  = await fetch('/predict', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    renderResult(data, payload);
+  } catch(e) {
+    alert('Prediction failed. Make sure the server is running.');
+  } finally {
+    btn.textContent = 'Predict Cancellation Risk';
+    btn.disabled = false;
+  }
+}
+
+function renderResult(data, inputs) {
+  const c = C[data.color];
+  const panel = document.getElementById('result-panel');
+  panel.style.borderColor = c;
+
+  document.getElementById('result-empty').style.display = 'none';
+  const rm = document.getElementById('result-main');
+  rm.classList.add('show');
+
+  document.getElementById('result-pct').style.color  = c;
+  document.getElementById('result-pct').textContent  = data.probability + '%';
+  document.getElementById('result-risk').style.color = c;
+  document.getElementById('result-risk').style.borderColor = c;
+  document.getElementById('result-risk').textContent = data.risk;
+
+  document.getElementById('result-bar').style.background = c;
+  document.getElementById('result-bar').style.width      = data.probability + '%';
+
+  // Reasons
+  const rl = document.getElementById('reasons-list');
+  rl.innerHTML = data.reasons.map(r => `
+    <div class="reason-item">
+      <div class="reason-dot ${r.impact}"></div>
+      <div class="reason-text">${r.factor}</div>
+      <div class="reason-badge ${r.impact}">${r.impact}</div>
+    </div>
+  `).join('');
+
+  // Trip summary
+  document.getElementById('trip-summary').innerHTML = `
+    <div class="trip-item"><div class="ti-lbl">Hour</div><div class="ti-val">${String(inputs.hour).padStart(2,'0')}:00</div></div>
+    <div class="trip-item"><div class="ti-lbl">Day</div><div class="ti-val">${DAYS[inputs.dow]}</div></div>
+    <div class="trip-item"><div class="ti-lbl">Distance</div><div class="ti-val">${inputs.distance} mi</div></div>
+    <div class="trip-item"><div class="ti-lbl">Est. Fare</div><div class="ti-val">${(data.estimated_fare==null?'—':('$'+Number(data.estimated_fare).toFixed(2)))}</div></div>
+    <div class="trip-item"><div class="ti-lbl">Route</div><div class="ti-val">Zone ${inputs.pu_zone} — ${inputs.do_zone}</div></div>
+  `;
+}
+
+// ── Dataset ──
+let currentPage = 1, totalPages = 1, allRows = [], filteredRows = [], tableColumns = [];
+const PER_PAGE = 50;
+
+async function loadData(page) {
+  const res  = await fetch(`/api/data?page=${page}`);
+  const data = await res.json();
+  totalPages   = data.pages;
+  currentPage  = data.page;
+  tableColumns = data.columns;
+  allRows      = data.rows;
+  filteredRows = allRows;
+  renderTable();
+  renderPagination(data.total, data.page, data.pages);
+  document.getElementById('data-info').textContent =
+    `Showing ${(page-1)*data.per_page + 1}–${Math.min(page*data.per_page, data.total)} of ${data.total.toLocaleString()} rows`;
+}
+
+function renderTable() {
+  const COL_LABELS = {
+    pickup_hour: 'Hour', pickup_dow: 'Day', trip_distance: 'Distance (mi)',
+    haversine_km: 'Zone Distance (km)', pickup_latitude: 'Pickup Lat',
+    pickup_longitude: 'Pickup Lon', cancelled: 'Cancelled'
+  };
+  document.getElementById('data-thead').innerHTML =
+    '<tr>' + tableColumns.map(c => `<th>${COL_LABELS[c] || c}</th>`).join('') + '</tr>';
+
+  const rows = filteredRows.slice(0, PER_PAGE);
+  document.getElementById('data-tbody').innerHTML = rows.map(row =>
+    '<tr>' + row.map((v, i) => {
+      if (tableColumns[i] === 'cancelled') {
+        return `<td class="cancelled-${v === 'Yes' ? 'yes' : 'no'}">${v}</td>`;
+      }
+      return `<td>${v ?? '—'}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+}
+
+function filterTable() {
+  const q = document.getElementById('data-search').value.toLowerCase();
+  filteredRows = q ? allRows.filter(row => row.some(v => String(v).toLowerCase().includes(q))) : allRows;
+  renderTable();
+}
+
+function renderPagination(total, page, pages) {
+  const pg = document.getElementById('pagination');
+  let html = `<button class="page-btn" onclick="loadData(${page-1})" ${page<=1?'disabled':''}>Prev</button>`;
+  const start = Math.max(1, page - 2), end = Math.min(pages, page + 2);
+  for (let i = start; i <= end; i++)
+    html += `<button class="page-btn ${i===page?'active':''}" onclick="loadData(${i})">${i}</button>`;
+  html += `<button class="page-btn" onclick="loadData(${page+1})" ${page>=pages?'disabled':''}>Next</button>`;
+  html += `<span style="font-size:0.78rem;color:var(--text3);margin-left:6px;">Page ${page} of ${pages}</span>`;
+  pg.innerHTML = html;
+}
+
+// Load data when tab is first opened
+const origShowPage = showPage;
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'data' && allRows.length === 0) loadData(1);
+}
+
+// Lightbox
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+</body>
+</html>

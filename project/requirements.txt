@@ -1,0 +1,11 @@
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+xgboost>=2.0
+matplotlib>=3.9
+seaborn>=0.13
+pyarrow>=16.0
+pyshp>=2.3
+pyproj>=3.6
+flask>=3.0
+gunicorn>=22.0

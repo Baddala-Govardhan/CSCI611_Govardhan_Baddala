@@ -1,0 +1,12 @@
+# Render Blueprint: https://render.com/docs/infrastructure-as-code
+# After training locally, stage model/plots/data (see README), push to GitHub, then:
+#   Render Dashboard → New → Blueprint → connect repo → apply this file.
+
+services:
+  - type: web
+    name: nyc-taxi-cancellation-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 src.webapp:app
+    healthCheckPath: /
