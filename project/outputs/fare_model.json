@@ -1,0 +1,23 @@
+{
+  "target_col": "total_amount",
+  "feature_names": [
+    "trip_distance",
+    "is_night",
+    "is_weekend"
+  ],
+  "intercept": 12.754089602082837,
+  "coef": [
+    4.535045698972792,
+    -1.276057121215682,
+    -1.2624607969686814
+  ],
+  "train_rows": 95712,
+  "distance_range": [
+    0.1,
+    38.07
+  ],
+  "y_range": [
+    2.0,
+    233.63
+  ]
+}

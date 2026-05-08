@@ -1,0 +1,34 @@
+[
+  [
+    "pickup_hour",
+    NaN
+  ],
+  [
+    "pickup_dow",
+    NaN
+  ],
+  [
+    "pickup_latitude",
+    NaN
+  ],
+  [
+    "pickup_longitude",
+    NaN
+  ],
+  [
+    "dropoff_latitude",
+    NaN
+  ],
+  [
+    "dropoff_longitude",
+    NaN
+  ],
+  [
+    "haversine_km",
+    NaN
+  ],
+  [
+    "trip_distance",
+    NaN
+  ]
+]
