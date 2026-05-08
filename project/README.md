@@ -1,5 +1,9 @@
 # Ride Cancellation Prediction (XGBoost)
 
+### Live demo (Render)
+
+[https://csci611-govardhan-baddala.onrender.com/](https://csci611-govardhan-baddala.onrender.com/)
+
 This project predicts whether a ride will be cancelled (**binary classification**) using tabular trip features (temporal / spatial / trip).
 
 NYC Taxi trip datasets typically do **not** contain true "cancellation" labels, so this repo includes a **synthetic label generator** (clearly marked) to support model training and evaluation for class projects.
@@ -66,12 +70,6 @@ brew install libomp
 ```
 
 Then restart your terminal / venv. Until then, `--backend auto` falls back to **sklearn `HistGradientBoostingClassifier`** (histogram GBDT), which is fine for coursework if you explain it in your report.
-
-## Web dashboard
-
-### Live demo (Render)
-
-[https://csci611-govardhan-baddala.onrender.com/](https://csci611-govardhan-baddala.onrender.com/)
 
 ## Run (manual steps)
 
